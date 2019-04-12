@@ -7,12 +7,14 @@
 
 > Users must be able to say: “Nice enhancement, I'm eager to test it”
 
+- [SR] Allow import of VHD and VMDK disks [#4137](https://github.com/vatesfr/xen-orchestra/issues/4137) (PR [#4138](https://github.com/vatesfr/xen-orchestra/pull/4138) )
+
 
 ### Bug fixes
 
 > Users must be able to say: “I had this issue, happy to know it's fixed”
-- [SDN controller] Prevent private network creation on bond slave PIF (Fixes https://github.com/xcp-ng/xcp/issues/300) (PR [4633](https://github.com/vatesfr/xen-orchestra/pull/4633))
 
+- [SDN controller] Prevent private network creation on bond slave PIF (Fixes https://github.com/xcp-ng/xcp/issues/300) (PR [4633](https://github.com/vatesfr/xen-orchestra/pull/4633))
 - [Metadata backup] Fix failed backup reported as successful [#4596](https://github.com/vatesfr/xen-orchestra/issues/4596) (PR [#4598](https://github.com/vatesfr/xen-orchestra/pull/4598))
 
 ### Released packages
@@ -22,6 +24,7 @@
 >
 > Rule of thumb: add packages on top.
 
+- xo-vmdk-to-vhd v0.1.8
 - xo-server-backup-reports v0.16.3
 - vhd-lib v0.7.1
 - xo-server v5.52.0
