@@ -1,54 +1,17 @@
-import { defer, fromEvent } from 'promise-toolbox'
-
 import LevelDbLogger from './loggers/leveldb'
+
+const STORE_NAMESPACE = 'logs'
 
 export default class Logs {
   constructor(app) {
     this._app = app
 
-    app.on('clean', () => this._gc())
-  }
-
-  async _gc(keep = 2e4) {
-    const db = await this._app.getStore('logs')
-
-    let count = 1
-    const { promise, resolve } = defer()
-
-    const cb = () => {
-      if (--count === 0) {
-        resolve()
-      }
-    }
-    const stream = db.createKeyStream({
-      reverse: true,
-    })
-
-    const deleteEntry = key => {
-      ++count
-      db.del(key, cb)
-    }
-
-    const onData =
-      keep !== 0
-        ? () => {
-            if (--keep === 0) {
-              stream.on('data', deleteEntry)
-              stream.removeListener('data', onData)
-            }
-          }
-        : deleteEntry
-    stream.on('data', onData)
-
-    await fromEvent(stream, 'end')
-    cb()
-
-    return promise
+    app.on('clean', () => app.cleanStore(STORE_NAMESPACE))
   }
 
   getLogger(namespace) {
     return this._app
-      .getStore('logs')
+      .getStore(STORE_NAMESPACE)
       .then(store => new LevelDbLogger(store, namespace))
   }
 

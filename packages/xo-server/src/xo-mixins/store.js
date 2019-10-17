@@ -1,5 +1,6 @@
 import levelup from 'level-party'
 import sublevel from 'level-sublevel'
+import { defer, fromEvent } from 'promise-toolbox'
 import { ensureDir } from 'fs-extra'
 
 import { forEach, promisify } from '../utils'
@@ -62,5 +63,42 @@ export default class {
 
   getStore(namespace) {
     return this._db.then(db => levelPromise(levelHas(db.sublevel(namespace))))
+  }
+
+  async cleanStore(namespace, keep = 2e4) {
+    const db = await this.getStore(namespace)
+
+    let count = 1
+    const { promise, resolve } = defer()
+
+    const cb = () => {
+      if (--count === 0) {
+        resolve()
+      }
+    }
+    const stream = db.createKeyStream({
+      reverse: true,
+    })
+
+    const deleteEntry = key => {
+      ++count
+      db.del(key, cb)
+    }
+
+    const onData =
+      keep !== 0
+        ? () => {
+            if (--keep === 0) {
+              stream.on('data', deleteEntry)
+              stream.removeListener('data', onData)
+            }
+          }
+        : deleteEntry
+    stream.on('data', onData)
+
+    await fromEvent(stream, 'end')
+    cb()
+
+    return promise
   }
 }
