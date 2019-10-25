@@ -6,7 +6,7 @@ export default class Logs {
   constructor(app) {
     this._app = app
 
-    app.on('clean', () => app.cleanStore(STORE_NAMESPACE))
+    app.on('clean', () => app.getStore(STORE_NAMESPACE).then(db => db.clean()))
   }
 
   getLogger(namespace) {

@@ -24,8 +24,45 @@ const _levelHas = function has(key, cb) {
   }
   return false
 }
-const levelHas = db => {
+
+async function _levelClean(keep = 2e4) {
+  let count = 1
+  const { promise, resolve } = defer()
+
+  const cb = () => {
+    if (--count === 0) {
+      resolve()
+    }
+  }
+  const stream = this.createKeyStream({
+    reverse: true,
+  })
+
+  const deleteEntry = key => {
+    ++count
+    this.del(key, cb)
+  }
+
+  const onData =
+    keep !== 0
+      ? () => {
+          if (--keep === 0) {
+            stream.on('data', deleteEntry)
+            stream.removeListener('data', onData)
+          }
+        }
+      : deleteEntry
+  stream.on('data', onData)
+
+  await fromEvent(stream, 'end')
+  cb()
+
+  return promise
+}
+
+const levelMethods = db => {
   db.has = _levelHas
+  db.clean = _levelClean
 
   return db
 }
@@ -62,43 +99,8 @@ export default class {
   }
 
   getStore(namespace) {
-    return this._db.then(db => levelPromise(levelHas(db.sublevel(namespace))))
-  }
-
-  async cleanStore(namespace, keep = 2e4) {
-    const db = await this.getStore(namespace)
-
-    let count = 1
-    const { promise, resolve } = defer()
-
-    const cb = () => {
-      if (--count === 0) {
-        resolve()
-      }
-    }
-    const stream = db.createKeyStream({
-      reverse: true,
-    })
-
-    const deleteEntry = key => {
-      ++count
-      db.del(key, cb)
-    }
-
-    const onData =
-      keep !== 0
-        ? () => {
-            if (--keep === 0) {
-              stream.on('data', deleteEntry)
-              stream.removeListener('data', onData)
-            }
-          }
-        : deleteEntry
-    stream.on('data', onData)
-
-    await fromEvent(stream, 'end')
-    cb()
-
-    return promise
+    return this._db.then(db =>
+      levelPromise(levelMethods(db.sublevel(namespace)))
+    )
   }
 }
