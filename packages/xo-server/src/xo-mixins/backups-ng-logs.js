@@ -7,6 +7,8 @@ import { debounceWithKey } from '../_pDebounceWithKey'
 
 const consoleLogger = createLogger('xo:xo-mixins:backups-ng-logs')
 
+const STORE_NAMESPACE = 'consolidatedLogs'
+
 const isSkippedError = error =>
   error.message === 'no disks found' ||
   error.message === 'no VMs match this pattern' ||
@@ -70,15 +72,20 @@ const taskTimeComparator = ({ start: s1, end: e1 }, { start: s2, end: e2 }) => {
 //   tasks?: Task[],
 // }
 export default class BackupNgLogs {
-  constructor() {
+  constructor(app) {
+    this._app = app
     this.getBackupNgLogs = debounceWithKey(
       this.getBackupNgLogs,
       10e3,
       runId => runId
     )
+
+    app.on('clean', () => app.getStore(STORE_NAMESPACE).then(db => db.clean()))
   }
 
   async getBackupNgLogs(runId?: string) {
+    const consolidatedLogsStore = await this._app.getStore(STORE_NAMESPACE)
+
     const [
       jobLogs,
       restoreLogs,
@@ -88,7 +95,18 @@ export default class BackupNgLogs {
       this.getLogs('jobs'),
       this.getLogs('restore'),
       this.getLogs('metadataRestore'),
-      this.getConsolidatedLogs(),
+      new Promise((resolve, reject) => {
+        const logs = {}
+        consolidatedLogsStore
+          .createReadStream()
+          .on('data', data => {
+            logs[data.key] = data.value
+          })
+          .on('end', () => {
+            resolve(logs)
+          })
+          .on('error', reject)
+      }),
     ])
 
     if (runId !== undefined && storedConsolidatedLogs[runId] !== undefined) {
@@ -106,14 +124,10 @@ export default class BackupNgLogs {
 
     const finishedTasks = []
     const storeConsolidatedLogs = async () => {
-      const [consolidationLogger, legacyLogger] = await Promise.all([
-        this.getConsolidationLogger(),
-        this.getStore('logs'),
-      ])
-
+      const logger = await this.getStore('logs')
       return asyncMap(finishedTasks, async id => {
-        await consolidationLogger.put(id, consolidated[id])
-        return asyncMap(tasksByTopParent[id], id => legacyLogger.del(id))
+        await consolidatedLogsStore.put(id, consolidated[id])
+        return asyncMap(tasksByTopParent[id], id => logger.del(id))
       })
     }
 
