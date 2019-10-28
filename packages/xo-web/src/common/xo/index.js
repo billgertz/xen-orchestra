@@ -1157,6 +1157,9 @@ export const changeVirtualizationMode = vm =>
     })
   )
 
+export const createKubernetesCluster = params =>
+  _call('xoa.recipe.createKubernetesCluster', params)
+
 export const deleteTemplates = templates =>
   confirm({
     title: _('templateDeleteModalTitle', { templates: templates.length }),

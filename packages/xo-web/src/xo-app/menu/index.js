@@ -333,7 +333,7 @@ export default class Menu extends Component {
         ],
       },
       isAdmin && {
-        to: '/hub',
+        to: '/hub/templates',
         icon: 'menu-hub',
         label: 'hubPage',
       },
