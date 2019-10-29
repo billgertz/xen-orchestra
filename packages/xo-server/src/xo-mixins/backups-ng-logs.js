@@ -84,7 +84,8 @@ export default class BackupNgLogs {
   }
 
   async getBackupNgLogs(runId?: string) {
-    const consolidatedLogsStore = await this._app.getStore(STORE_NAMESPACE)
+    const app = this._app
+    const consolidatedLogsStore = await app.getStore(STORE_NAMESPACE)
 
     const [
       jobLogs,
@@ -92,9 +93,9 @@ export default class BackupNgLogs {
       restoreMetadataLogs,
       storedConsolidatedLogs,
     ] = await Promise.all([
-      this.getLogs('jobs'),
-      this.getLogs('restore'),
-      this.getLogs('metadataRestore'),
+      app.getLogs('jobs'),
+      app.getLogs('restore'),
+      app.getLogs('metadataRestore'),
       new Promise((resolve, reject) => {
         const logs = {}
         consolidatedLogsStore
@@ -113,7 +114,7 @@ export default class BackupNgLogs {
       return storedConsolidatedLogs[runId]
     }
 
-    const { runningJobs, runningRestores, runningMetadataRestores } = this
+    const { runningJobs, runningRestores, runningMetadataRestores } = app
     const consolidated = {}
     const started = {}
 
@@ -124,7 +125,7 @@ export default class BackupNgLogs {
 
     const finishedTasks = []
     const storeConsolidatedLogs = async () => {
-      const logger = await this.getStore('logs')
+      const logger = await app.getStore('logs')
       return asyncMap(finishedTasks, async id => {
         await consolidatedLogsStore.put(id, consolidated[id])
         return asyncMap(tasksByTopParent[id], id => logger.del(id))
