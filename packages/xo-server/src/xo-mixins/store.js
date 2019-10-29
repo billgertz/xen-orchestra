@@ -7,22 +7,16 @@ import { forEach, promisify } from '../utils'
 
 // ===================================================================
 
-const _levelHas = function has(key, cb) {
-  if (cb) {
-    return this.get(key, (error, value) =>
-      error ? (error.notFound ? cb(null, false) : cb(error)) : cb(null, true)
-    )
-  }
-
-  try {
-    this.get(key)
-    return true
-  } catch (error) {
-    if (!error.notFound) {
-      throw error
+const _levelHas = function has(key) {
+  return this.get(key).then(
+    () => true,
+    error => {
+      if (!error.notFound) {
+        throw error
+      }
+      return false
     }
-  }
-  return false
+  )
 }
 
 async function _levelClean(keep = 2e4) {
@@ -100,7 +94,7 @@ export default class {
 
   getStore(namespace) {
     return this._db.then(db =>
-      levelPromise(levelMethods(db.sublevel(namespace)))
+      levelMethods(levelPromise(db.sublevel(namespace)))
     )
   }
 }
