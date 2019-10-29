@@ -1,3 +1,4 @@
+import assert from 'assert'
 import levelup from 'level-party'
 import sublevel from 'level-sublevel'
 import { defer, fromEvent } from 'promise-toolbox'
@@ -19,7 +20,10 @@ const _levelHas = function has(key) {
   )
 }
 
-async function _levelClean(keep = 2e4) {
+// keep n element in the DB
+async function _levelGc(keep) {
+  assert(typeof keep === 'number')
+
   let count = 1
   const { promise, resolve } = defer()
 
@@ -56,7 +60,7 @@ async function _levelClean(keep = 2e4) {
 
 const levelMethods = db => {
   db.has = _levelHas
-  db.clean = _levelClean
+  db.gc = _levelGc
 
   return db
 }

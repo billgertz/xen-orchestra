@@ -5,7 +5,7 @@ import { forEach, isEmpty, iteratee, sortedIndexBy } from 'lodash'
 
 import { debounceWithKey } from '../_pDebounceWithKey'
 
-const consoleLogger = createLogger('xo:xo-mixins:backups-ng-logs')
+const logger = createLogger('xo:xo-mixins:backups-ng-logs')
 
 const STORE_NAMESPACE = 'consolidatedLogs'
 
@@ -80,7 +80,7 @@ export default class BackupNgLogs {
       runId => runId
     )
 
-    app.on('clean', () => app.getStore(STORE_NAMESPACE).then(db => db.clean()))
+    app.on('clean', () => app.getStore(STORE_NAMESPACE).then(db => db.gc(2e4)))
   }
 
   async getBackupNgLogs(runId?: string) {
@@ -125,10 +125,10 @@ export default class BackupNgLogs {
 
     const finishedTasks = []
     const storeConsolidatedLogs = async () => {
-      const logger = await app.getStore('logs')
+      const legacyLogsStore = await app.getStore('logs')
       return asyncMap(finishedTasks, async id => {
         await consolidatedLogsStore.put(id, consolidated[id])
-        return asyncMap(tasksByTopParent[id], id => logger.del(id))
+        return asyncMap(tasksByTopParent[id], id => legacyLogsStore.del(id))
       })
     }
 
@@ -273,7 +273,7 @@ export default class BackupNgLogs {
     forEach(restoreMetadataLogs, handleLog)
 
     storeConsolidatedLogs().catch(error => {
-      consoleLogger.warn('Error on storing consolidated logs', {
+      logger.warn('Error on storing consolidated logs', {
         error,
       })
     })
