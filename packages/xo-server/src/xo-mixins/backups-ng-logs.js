@@ -7,7 +7,7 @@ import { debounceWithKey } from '../_pDebounceWithKey'
 
 const logger = createLogger('xo:xo-mixins:backups-ng-logs')
 
-const STORE_NAMESPACE = 'consolidatedLogs'
+const STORE_NAMESPACE = 'backupTask'
 
 const isSkippedError = error =>
   error.message === 'no disks found' ||
@@ -85,22 +85,22 @@ export default class BackupNgLogs {
 
   async getBackupNgLogs(runId?: string) {
     const app = this._app
-    const consolidatedLogsStore = await app.getStore(STORE_NAMESPACE)
+    const backupTaskStore = await app.getStore(STORE_NAMESPACE)
 
     const [
       jobLogs,
       restoreLogs,
       restoreMetadataLogs,
-      storedConsolidatedLogs,
+      backupTasks,
     ] = await Promise.all([
       app.getLogs('jobs'),
       app.getLogs('restore'),
       app.getLogs('metadataRestore'),
-      consolidatedLogsStore.getAll(),
+      backupTaskStore.getAll(),
     ])
 
-    if (runId !== undefined && storedConsolidatedLogs[runId] !== undefined) {
-      return storedConsolidatedLogs[runId]
+    if (runId !== undefined && backupTasks[runId] !== undefined) {
+      return backupTasks[runId]
     }
 
     const { runningJobs, runningRestores, runningMetadataRestores } = app
@@ -113,11 +113,11 @@ export default class BackupNgLogs {
     const taskWithTopParent = {}
 
     const finishedTasks = []
-    const storeConsolidatedLogs = async () => {
-      const legacyLogsStore = await app.getStore('logs')
+    const storeBackupTasks = async () => {
+      const logsStore = await app.getStore('logs')
       return asyncMap(finishedTasks, async id => {
-        await consolidatedLogsStore.put(id, consolidated[id])
-        return asyncMap(tasksByTopParent[id], id => legacyLogsStore.del(id))
+        await backupTaskStore.put(id, consolidated[id])
+        return asyncMap(tasksByTopParent[id], id => logsStore.del(id))
       })
     }
 
@@ -261,14 +261,14 @@ export default class BackupNgLogs {
     forEach(restoreLogs, handleLog)
     forEach(restoreMetadataLogs, handleLog)
 
-    storeConsolidatedLogs().catch(error => {
-      logger.warn('Error on storing consolidated logs', {
+    storeBackupTasks().catch(error => {
+      logger.warn('Error on storing task logs', {
         error,
       })
     })
 
     return runId === undefined
-      ? { ...consolidated, ...storedConsolidatedLogs }
+      ? { ...consolidated, ...backupTasks }
       : consolidated[runId]
   }
 
