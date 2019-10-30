@@ -72,7 +72,7 @@ const taskTimeComparator = ({ start: s1, end: e1 }, { start: s2, end: e2 }) => {
 //   tasks?: Task[],
 // }
 export default class BackupNgLogs {
-  constructor(app) {
+  constructor(app, { backup }) {
     this._app = app
     this.getBackupNgLogs = debounceWithKey(
       this.getBackupNgLogs,
@@ -80,7 +80,9 @@ export default class BackupNgLogs {
       runId => runId
     )
 
-    app.on('clean', () => app.getStore(STORE_NAMESPACE).then(db => db.gc(2e4)))
+    app.on('clean', () =>
+      app.getStore(STORE_NAMESPACE).then(db => db.gc(backup.nKeptTasks))
+    )
   }
 
   async getBackupNgLogs(runId?: string) {

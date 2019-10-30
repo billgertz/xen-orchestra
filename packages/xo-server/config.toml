@@ -4,6 +4,9 @@
 
 datadir = '/var/lib/xo-server/data'
 
+# Number of logs kept in the data base
+nKeptLogs = 2e4
+
 # Should users be created on first sign in?
 #
 # Necessary for external authentication providers.
@@ -58,6 +61,9 @@ listingDebounce = '1 min'
 #
 # It should be short to avoid blocking the display of the available backups.
 vmBackupSizeTimeout = '2 seconds'
+
+# Number of backup tasks kept in the data base
+nKeptTasks = 2e4
 
 # Helmet handles HTTP security via headers
 #
