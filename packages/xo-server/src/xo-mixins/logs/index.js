@@ -15,21 +15,7 @@ export default class Logs {
       .then(store => new LevelDbLogger(store, namespace))
   }
 
-  async getLogs(namespace) {
-    const logger = await this.getLogger(namespace)
-
-    return new Promise((resolve, reject) => {
-      const logs = {}
-
-      logger
-        .createReadStream()
-        .on('data', data => {
-          logs[data.key] = data.value
-        })
-        .on('end', () => {
-          resolve(logs)
-        })
-        .on('error', reject)
-    })
+  getLogs(namespace) {
+    return this.getLogger(namespace).then(db => db.getAll())
   }
 }

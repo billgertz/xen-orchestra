@@ -58,9 +58,24 @@ async function _levelGc(keep) {
   return promise
 }
 
+function _levelGetAll() {
+  return new Promise((resolve, reject) => {
+    const logs = {}
+    this.createReadStream()
+      .on('data', data => {
+        logs[data.key] = data.value
+      })
+      .on('end', () => {
+        resolve(logs)
+      })
+      .on('error', reject)
+  })
+}
+
 const levelMethods = db => {
-  db.has = _levelHas
   db.gc = _levelGc
+  db.getAll = _levelGetAll
+  db.has = _levelHas
 
   return db
 }

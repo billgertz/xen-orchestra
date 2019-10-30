@@ -96,18 +96,7 @@ export default class BackupNgLogs {
       app.getLogs('jobs'),
       app.getLogs('restore'),
       app.getLogs('metadataRestore'),
-      new Promise((resolve, reject) => {
-        const logs = {}
-        consolidatedLogsStore
-          .createReadStream()
-          .on('data', data => {
-            logs[data.key] = data.value
-          })
-          .on('end', () => {
-            resolve(logs)
-          })
-          .on('error', reject)
-      }),
+      consolidatedLogsStore.getAll(),
     ])
 
     if (runId !== undefined && storedConsolidatedLogs[runId] !== undefined) {

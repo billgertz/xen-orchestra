@@ -23,6 +23,7 @@ export default class LevelDbLogger extends AbstractLogger {
 
     this._db = db
     this._namespace = namespace
+    this.getAll = db.getAll
   }
 
   _add(level, message, data, returnPromise = false) {
