@@ -7,6 +7,7 @@
 
 > Users must be able to say: “Nice enhancement, I'm eager to test it”
 
+- [Smart backup] Ability to add new tag (PR [#4648](https://github.com/vatesfr/xen-orchestra/pull/4648))
 
 ### Bug fixes
 
