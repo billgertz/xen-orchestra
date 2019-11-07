@@ -499,6 +499,7 @@ const messages = {
   deleteOldBackupsFirst: 'Delete first',
   deleteOldBackupsFirstMessage:
     'Delete old backups before backing up the VMs. If the new backup fails, you will lose your old backups.',
+  addTag: 'Add tag',
 
   // ------ New Remote -----
   newRemote: 'New file system remote',
