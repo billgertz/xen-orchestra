@@ -166,7 +166,7 @@ export default class BackupNgLogs {
           // top level task
           const isRunning =
             runningRestores.has(id) || runningMetadataRestores.has(id)
-          task.status = isRunning ? 'interrupted' : 'pending'
+          task.status = isRunning ? 'pending' : 'interrupted'
           consolidated[id] = started[id] = task
 
           if (!isRunning) {
