@@ -74,45 +74,36 @@ const taskTimeComparator = ({ start: s1, end: e1 }, { start: s2, end: e2 }) => {
 export default class BackupNgLogs {
   constructor(app, { backup }) {
     this._app = app
-    this.getBackupNgLogs = debounceWithKey(
-      this.getBackupNgLogs,
-      10e3,
-      runId => runId
-    )
-
     app.on('clean', () =>
       app.getStore(STORE_NAMESPACE).then(db => db.gc(backup.nKeptTasks))
     )
   }
 
+  @debounceWithKey.decorate(10e3, function keyFn(runId) {
+    return [this, runId]
+  })
   async getBackupNgLogs(runId?: string) {
     const app = this._app
     const backupTaskStore = await app.getStore(STORE_NAMESPACE)
 
-    const [
-      jobLogs,
-      restoreLogs,
-      restoreMetadataLogs,
-      backupTasks,
-    ] = await Promise.all([
+    const consolidated = await backupTaskStore.getAll()
+    if (runId !== undefined && consolidated[runId] !== undefined) {
+      return consolidated[runId]
+    }
+
+    const [jobLogs, restoreLogs, restoreMetadataLogs] = await Promise.all([
       app.getLogs('jobs'),
       app.getLogs('restore'),
       app.getLogs('metadataRestore'),
-      backupTaskStore.getAll(),
     ])
 
-    if (runId !== undefined && backupTasks[runId] !== undefined) {
-      return backupTasks[runId]
-    }
-
     const { runningJobs, runningRestores, runningMetadataRestores } = app
-    const consolidated = {}
     const started = {}
 
     // used in order to clean subtasks when the global task finish
     const tasksByTopParent = {}
     // an optimization to get the hight level parent
-    const taskWithTopParent = {}
+    const topParentByTask = {}
 
     const finishedTasks = []
     const storeBackupTasks = async () => {
@@ -131,7 +122,8 @@ export default class BackupNgLogs {
           (runId === undefined || runId === id)
         ) {
           const { scheduleId, jobId } = data
-          const status = runningJobs[jobId] === id ? 'pending' : 'interrupted'
+          const isRunning = runningJobs[jobId] === id
+          const status = isRunning ? 'pending' : 'interrupted'
           consolidated[id] = started[id] = {
             data: data.data,
             id,
@@ -142,7 +134,7 @@ export default class BackupNgLogs {
             start: time,
             status,
           }
-          if (status === 'interrupted') {
+          if (!isRunning) {
             finishedTasks.push(id)
           }
           tasksByTopParent[id] = [id]
@@ -172,14 +164,12 @@ export default class BackupNgLogs {
         let parent
         if (parentId === undefined && (runId === undefined || runId === id)) {
           // top level task
-          task.status =
-            (message === 'restore' && !runningRestores.has(id)) ||
-            (message === 'metadataRestore' && !runningMetadataRestores.has(id))
-              ? 'interrupted'
-              : 'pending'
+          const isRunning =
+            runningRestores.has(id) || runningMetadataRestores.has(id)
+          task.status = isRunning ? 'interrupted' : 'pending'
           consolidated[id] = started[id] = task
 
-          if (task.status === 'interrupted') {
+          if (!isRunning) {
             finishedTasks.push(id)
           }
           tasksByTopParent[id] = [id]
@@ -189,8 +179,8 @@ export default class BackupNgLogs {
           started[id] = task
           ;(parent.tasks || (parent.tasks = [])).push(task)
 
-          const topParent = taskWithTopParent[parentId] ?? parentId
-          taskWithTopParent[id] = topParent
+          const topParent = topParentByTask[parentId] ?? parentId
+          topParentByTask[id] = topParent
           tasksByTopParent[topParent].push(id)
         }
       } else if (event === 'task.end') {
@@ -205,7 +195,7 @@ export default class BackupNgLogs {
             log.tasks
           )
 
-          tasksByTopParent[taskWithTopParent[taskId] ?? taskId].push(id)
+          tasksByTopParent[topParentByTask[taskId] ?? taskId].push(id)
 
           // top level task
           if (tasksByTopParent[taskId] !== undefined) {
@@ -219,7 +209,7 @@ export default class BackupNgLogs {
             data: data.data,
             message,
           })
-          tasksByTopParent[taskWithTopParent[parent.id] ?? parent.id].push(id)
+          tasksByTopParent[topParentByTask[parent.id] ?? parent.id].push(id)
         }
       } else if (event === 'task.info') {
         const parent = started[data.taskId]
@@ -228,7 +218,7 @@ export default class BackupNgLogs {
             data: data.data,
             message,
           })
-          tasksByTopParent[taskWithTopParent[parent.id] ?? parent.id].push(id)
+          tasksByTopParent[topParentByTask[parent.id] ?? parent.id].push(id)
         }
       } else if (event === 'jobCall.start') {
         const parent = started[data.runJobId]
@@ -269,9 +259,7 @@ export default class BackupNgLogs {
       })
     })
 
-    return runId === undefined
-      ? { ...consolidated, ...backupTasks }
-      : consolidated[runId]
+    return runId === undefined ? consolidated : consolidated[runId]
   }
 
   async getBackupNgLogsSorted({ after, before, filter, limit }) {
