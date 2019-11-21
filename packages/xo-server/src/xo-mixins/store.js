@@ -23,7 +23,7 @@ async function _levelHas(key) {
 
 // keep n element in the DB
 async function _levelGc(keep) {
-  assert(typeof keep === 'number')
+  assert.strictEqual(typeof keep, 'number')
 
   let count = 1
   const { promise, resolve } = defer()
