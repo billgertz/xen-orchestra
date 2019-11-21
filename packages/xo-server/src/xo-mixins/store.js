@@ -1,8 +1,7 @@
 import assert from 'assert'
 import levelup from 'level-party'
 import sublevel from 'level-sublevel'
-import { createPredicate } from 'value-matcher'
-import { defer, fromEvent } from 'promise-toolbox'
+import { defer, fromEvent, iteratee } from 'promise-toolbox'
 import { ensureDir } from 'fs-extra'
 
 import { forEach, promisify } from '../utils'
@@ -59,8 +58,9 @@ async function _levelGc(keep) {
   return promise
 }
 
-function _levelGetAll(filter = {}) {
-  const isMatch = createPredicate(filter)
+function _levelGetAll(filter) {
+  const isMatch = typeof filter === 'function' ? filter : iteratee(filter)
+
   return new Promise((resolve, reject) => {
     const entries = {}
     this.createReadStream()

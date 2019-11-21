@@ -87,6 +87,7 @@ export default class BackupNgLogs {
     const backupTaskStore = await app.getStore(STORE_NAMESPACE)
 
     const consolidated = await backupTaskStore.getAll()
+    // an optimization to avoid useless computation
     if (runId !== undefined && consolidated[runId] !== undefined) {
       return consolidated[runId]
     }
