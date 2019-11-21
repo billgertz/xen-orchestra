@@ -14,8 +14,6 @@ To construct the logs, the plugin should handle two events:
 Each events provide data:
 
 ```
-pre call data:
-
 preCallData {
   callId: String,
   method: String,
@@ -24,8 +22,6 @@ preCallData {
   userId: String,
   userName: String,
 }
-
-post call data:
 
 postCallData {
   ...preCallData,
